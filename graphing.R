@@ -1,0 +1,248 @@
+#########################################################################################################################
+#Graphing tools
+#########################################################################################################################
+#load packages
+lapply(c("tidyverse", "lubridate", "reshape", "stringr", "plotly", "roll", "data.table"), library, character.only = TRUE)
+
+#QC Status
+##What has and hasn’t been QC’d? (QC level) -- usually most useful in long format
+QC_check<-df %>% 
+  ggplot(aes(x=Date, y=value)) + 
+  geom_point(aes(shape=Quality_Level, color=QC_Flag)) + 
+  theme_linedraw()
+
+#View by site/survey -- does each show expected results?
+Site_check<-df %>% 
+  ggplot(aes(x=Date, y=value)) +
+  theme_linedraw() + 
+  geom_point(aes(color=QC_Flag)) + 
+  facet_grid(Site~.)
+
+#Can we see expected relationships between variables?
+Variable_check<-df %>% 
+  ggplot(aes(x=pH, y=temp)) + 
+  geom_point(aes(color=QC_Flag)) + 
+  theme_linedraw()
+
+##################################################################################################################
+#Plotly
+##################################################################################################################
+##Multiple series time-series data and facet wrap by watyr 
+plot<-plot_ly(
+  data = df,
+  x = ~Date,
+  y = ~HecateRain,
+  #color = ~name,
+  type = "scatter",
+  mode = "lines",
+  name = "Hecate",
+  fill = "tozeroy"
+)
+
+plot<-fig %>% add_trace(
+  data = df,
+  x = ~Date,
+  y = ~EastBuxtonRain,
+  #color = ~name,
+  type = "scatter",
+  mode = "lines",
+  name = "East Buxton",
+  fill = "tozeroy"
+)
+
+fig <- plot %>% layout(xaxis = list(title = 'Date'),
+                      yaxis = list(title = '24hr Rainfall (mm)'))
+fig <- fig + facet_wrap( ~ watyr, ncol=2)
+
+fig <- ggplotly(fig)
+
+
+####################################################################################################################
+#Histogram/Frequency Table
+####################################################################################################################
+#calculate bin width
+breaks <- pretty(range(x), n = nclass.FD(x), min.n = 1)
+bwidth <- breaks[2]-breaks[1]
+df <- data.frame(x)
+ggplot(df,aes(x))+geom_histogram(binwidth=bwidth,fill="white",colour="black")
+
+#frequency table
+freq <- data.frame(table(df))
+
+relFreq <- data.frame(prop.table(table(df)))
+relFreq$Relative_Freq <- relFreq$Freq
+relFreq$Freq <- NULL
+
+Cumulative_Freq <- cumsum(table(df))
+
+z <- cbind(merge(freq, relFreq), Cumulative_Freq)
+z$Cumulative_Relative_Freq <- z$Cumulative_Freq / sum(z$Freq)
+
+print(z)
+
+
+freq_table<-df %>% 
+  mutate(df, relFreq = prop.table(df), Cumulative_Freq = cumsum(df), 
+         Cumulative_Relative_Freq = cumsum(relFreq))
+
+#plot histogram
+hist<-ggplot(df, aes(x=Rain))+
+  geom_histogram(fill="black", position="dodge", bins=30)+
+  theme_bw()+
+  theme(legend.position = "top")+
+  labs(x="1 Hr Rain", y="Frequency")+theme_bw()
+plot(hist)
+
+#######################################################################################################################
+#Correlation matrix plots
+#######################################################################################################################
+##data must be in long format
+
+#rename columns for space-saving on facet grid labels
+library(plyr)
+df<-rename(rain_spread, c("Rain24HrPruthMtd"="Pruth", "Rain24HrSSN1015Mtd"="SSN1015","Rain24HrSSN626Mtd"="SSN626","Rain24HrSSN693Mtd"="SSN693","Rain24HrSSN708Mtd"="SSN708","Rain24HrSSN819Mtd"="SSN819", "Rain24HrTSN3Mtd"="TSN3","Rain24HrWSN703Mtd"="WSN703","Rain24HrWSN693_703Mtd"="WSN693703","Rain24HrWSN703_708Mtd"="WSN703708"))
+
+#Separate by WY
+WY14_wide<-df %>% 
+  filter(Date >= as.Date("2013-10-01"), Date <= as.Date("2014-09-01"))
+WY15_wide<-df %>% 
+  filter(Date >= as.Date("2014-10-01"), Date <= as.Date("2015-09-01"))
+WY16_wide<-df %>% 
+  filter(Date >= as.Date("2015-10-01"), Date <= as.Date("2016-09-01"))
+WY17_wide<-df %>% 
+  filter(Date >= as.Date("2016-10-01"), Date <= as.Date("2017-09-01"))
+WY18_wide<-df %>% 
+  filter(Date >= as.Date("2017-10-01"), Date <= as.Date("2018-09-01"))
+WY19_wide<-df %>% 
+  filter(Date >= as.Date("2018-10-01"), Date <= as.Date("2019-09-01"))
+
+#remove unneeded columns for SPLOMs
+df14<-WY14_wide[-c(1:4)]
+df15<-WY15_wide[-c(1:4)]
+df16<-WY16_wide[-c(1:4)]
+df17<-WY17_wide[-c(1:4)]
+df18<-WY18_wide[-c(1:4)]
+df19<-WY19_wide[-c(1:4)]
+
+
+library(cdata)
+#specify variables to plot
+meas_vars<-colnames(df15)#[2:6]
+
+#data.frame() call strips attributed from the frame returned by expand.grid()
+controlTable<-data.frame(expand.grid(meas_vars, meas_vars,
+                                     stringsAsFactors = 
+                                       FALSE))
+#rename columns
+colnames(controlTable)<-c("x","y")
+
+#add the key column
+controlTable<-cbind(data.frame(pair_key=paste(controlTable[[1]], controlTable[[2]]),
+                               stringsAsFactors = FALSE),
+                    controlTable)
+#change df name
+df_me_aug = rowrecs_to_blocks(
+  df15 #remember to change per df
+  ,
+  controlTable)
+
+splt <- strsplit(df_me_aug$pair_key, split = " ", fixed = TRUE)
+
+df_me_aug$xv <- vapply(splt, function(si) si[[1]], character(1))
+
+df_me_aug$yv <- vapply(splt, function(si) si[[2]], character(1))
+
+head(df_me_aug)
+
+df_me_aug$xv <- factor(as.character(df_me_aug$xv),
+                       meas_vars)
+df_me_aug$yv <- factor(as.character(df_me_aug$yv),
+                       meas_vars)
+
+#plot
+SPLOM15<-ggplot(df_me_aug, aes(x=x, y=y)) +
+  geom_abline(slope=1, intercept=0)+
+  geom_point() + theme_bw(base_size=12)+ guides(color=guide_legend(title=" "))+
+  xlim(0,300)+
+  ylim(0,300)+
+  facet_grid(yv~xv, scale="free")+ #labeller = label_both
+  ggtitle("WY15 Precipitation") +
+  ylab(NULL) + 
+  xlab(NULL)+
+  #scale_color_brewer(palette = "Dark2") +
+  theme(strip.text.x = element_text(size = 8),
+        strip.text.y = element_text(size = 8))
+
+plot(SPLOM15)
+
+######################################################################################################################
+#Windrose plots
+######################################################################################################################
+#plotly high-contrast bw plots
+data<-df %>%
+  mutate(
+    Month = as.character(Month),
+    Season = case_when(
+      Month == "Oct"|Month == "Nov"|Month == "Dec"|Month == "Jan"|Month == "Feb"|Month == "Mar"|Month == "Apr" ~ "Wet",
+      Month == "May"|Month == "Jun"|Month == "Jul"|Month == "Aug"| Month =="Sep" ~ "Dry",
+      TRUE ~ Month))
+
+dry<-data %>% 
+  select(DateTime:Season) %>% 
+  filter(Season=="Dry")
+
+wet<-data %>% 
+  select(DateTime:Season) %>% 
+  filter(Season=="Wet")
+
+# set # of hours to reflect n per season -- run code for each "season"
+plotWindRose <- function(data, hrs = 35481, plotTitle = "", dirres = 15)
+  
+  #set breaks for direction  
+  dirres <- 15
+dir.breaks <- c(-dirres/2,
+                seq(dirres/2, 360-dirres/2, by = dirres),
+                360+dirres/2)
+dir.labels <- c(seq(0, 360, by = dirres))
+
+#wrangle data for plot
+wind <- data %>%
+  filter(DateTime >= startTime) %>%
+  select(DateTime, Wind_Speed, Wind_Dir) %>%
+  mutate(ws_bin = cut(Wind_Speed, breaks=c(-Inf, 5, 10, 20, 30, 40, 50, Inf), labels = c("< 5 km/h", "5-10 km/h", "10-20 km/h", "20-30 hm/h", "30-40 km/h", "40-50 km/h",">50 km/h"))) %>%
+  mutate(wd_bin = cut(Wind_Dir, breaks = dir.breaks, labels = dir.labels)) %>%
+  group_by(wd_bin, ws_bin) %>%
+  summarise(Freq=(n()/hrs)*100) %>%
+  arrange(ws_bin)
+
+#plot
+plot <- plot_ly(wind, type = "barpolar", hovertemplate = paste('Freq (%): %{r:.2f}<br>Dir: %{theta}\u00b0;'), colors = c("#CCCCCC", "#666666","#000000","#EEEEEE")) %>%
+  add_trace(r = ~Freq, theta = ~wd_bin, color = ~ws_bin) %>%
+  layout(
+    plot_bgcolor = "#FFFFFF",
+    paper_bgcolor = "#FFFFFF",
+    autosize = TRUE,
+    margin = list(l = 10, r = 10),
+    annotations = list(text = " ", xanchor = "centre",
+                       yref="paper",y=1,yshift=50,showarrow=FALSE,
+                       font=list(size=18,color='rgb(0,0,0)')),
+    xaxis = list(
+      title = c("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+    ),
+    legend = list(orientation = "h"),
+    polar = list(
+      radialaxis = list(
+        nticks = 7,
+        angle = 45,
+        tickangle = 45,
+        ticksuffix = " %"
+      ),
+      angularaxis = list(
+        tickmode = "array",
+        tickvals = c(0 , 45, 90, 135, 180, 225, 270, 315),
+        ticktext = c("N", "NE", "E", "SE", "S", "SW", "W", "NW"),
+        direction = "clockwise"
+      )
+    )
+  )
+plot
