@@ -29,8 +29,3 @@ df_long<-new_df %>%
 df_watyr19<-df %>% 
   filter(Date >= as_datetime("2018-10-01 00:00:00"), Date <= as_datetime("2019-10-01 00:00:00"))
 
-#Change wide to long format
-RefStn_long<-RefStn_watyr %>%
-    pivot_longer(TBRG:TotalP,names_to="Rain_Type", values_to="Rain") %>% 
-  filter(Rain!="NA"& watyr!="2020")
-
