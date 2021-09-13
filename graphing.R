@@ -2,7 +2,7 @@
 #Graphing tools
 #########################################################################################################################
 #load packages
-lapply(c("tidyverse", "lubridate", "reshape", "stringr", "plotly", "roll", "data.table"), library, character.only = TRUE)
+lapply(c("tidyverse", "lubridate", "reshape", "stringr", "plotly", "roll", "data.table", "cdata"), library, character.only = TRUE)
 
 #QC Status
 ##What has and hasn’t been QC’d? (QC level) -- usually most useful in long format
@@ -29,34 +29,76 @@ Variable_check<-df %>%
 ##################################################################################################################
 ##Multiple series time-series data and facet wrap by watyr 
 plot<-plot_ly(
-  data = df,
+  data = new_df,
   x = ~Date,
-  y = ~HecateRain,
+  y = ~SCKoeye1_Avg,
   #color = ~name,
   type = "scatter",
   mode = "lines",
-  name = "Hecate",
+  name = "EC_Temp",
   fill = "tozeroy"
 )
 
-plot<-fig %>% add_trace(
-  data = df,
+plot<-plot %>% add_trace(
+  data = new_df,
   x = ~Date,
-  y = ~EastBuxtonRain,
+  y = ~TWtrKoeyePT2_Avg,
   #color = ~name,
   type = "scatter",
   mode = "lines",
-  name = "East Buxton",
+  name = "PT2_temp",
+  fill = "tozeroy"
+)
+
+plot<-plot %>% add_trace(
+  data = new_df,
+  x = ~Date,
+  y = ~TWtrKoeyePT_Avg,
+  #color = ~name,
+  type = "scatter",
+  mode = "lines",
+  name = "PT_temp",
   fill = "tozeroy"
 )
 
 fig <- plot %>% layout(xaxis = list(title = 'Date'),
-                      yaxis = list(title = '24hr Rainfall (mm)'))
+                      yaxis = list(title = 'Water Temperature (degC)'))
 fig <- fig + facet_wrap( ~ watyr, ncol=2)
 
 fig <- ggplotly(fig)
 
+fig
+####################################################################################################################
+#ggplot2
+####################################################################################################################
+#specify text theme to apply to all figures
+My_Theme = theme(
+  axis.title.x = element_text(size = 12),
+  axis.text.x = element_text(size = 10),
+  axis.title.y = element_text(size = 12))
 
+#add multiple series to one figure
+temp<-temp_data %>% 
+  ggplot() + 
+  geom_line(data = temp_data, aes(x = Date, y = TWtrKoeye1_Avg), color = "red") +
+  geom_line(data = temp_data, aes(x = Date, y = TWtrKoeyePT_Avg), color = "blue") +
+  geom_line(data = temp_data, aes(x = Date, y = TWtrKoeyePT2_Avg), color = "green")+
+  xlab('Date') +
+  ylab('Temperature (degC')
+
+plot(temp)
+
+#wrap by site
+temp_wrap<-temp_long %>% 
+  ggplot(aes(x=Date, y=value)) +
+  theme_linedraw() + 
+  geom_line() + 
+  ylab('Temperature (degC)')+
+   facet_grid(variable~.)
+
+g<-temp_wrap+My_Theme
+
+plot(g)
 ####################################################################################################################
 #Histogram/Frequency Table
 ####################################################################################################################
