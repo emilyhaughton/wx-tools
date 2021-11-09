@@ -29,6 +29,7 @@ Variable_check<-df %>%
 ##################################################################################################################
 ##Multiple series time-series data and facet wrap by watyr 
 plot<-plot_ly(
+<<<<<<< HEAD
   data = depth_long,
   x = ~Date,
   y = ~`Water Depth`,
@@ -48,16 +49,45 @@ plot<-plot %>% add_trace(
   type = "scatter",
   mode = "lines",
   name = "PT2_temp",
+=======
+  data = new_df,
+  x = ~Date,
+  y = ~SCKoeye1_Avg,
+  #color = ~name,
+  type = "scatter",
+  mode = "lines",
+  name = "EC_Temp",
+>>>>>>> 16449a7ce0b585d20c70a14470845787e1770e28
   fill = "tozeroy"
 )
 
 plot<-plot %>% add_trace(
+<<<<<<< HEAD
   data = data,
   x = ~Date,
   y = ~TWtrLULL1_TB1_Avg,
   #color = ~name,
   type = "scatter",
   mode = "lines",
+=======
+  data = new_df,
+  x = ~Date,
+  y = ~TWtrKoeyePT2_Avg,
+  #color = ~name,
+  type = "scatter",
+  mode = "lines",
+  name = "PT2_temp",
+  fill = "tozeroy"
+)
+
+plot<-plot %>% add_trace(
+  data = new_df,
+  x = ~Date,
+  y = ~TWtrKoeyePT_Avg,
+  #color = ~name,
+  type = "scatter",
+  mode = "lines",
+>>>>>>> 16449a7ce0b585d20c70a14470845787e1770e28
   name = "PT_temp",
   fill = "tozeroy"
 )
@@ -69,6 +99,7 @@ fig <- fig + facet_wrap( ~ watyr, ncol=2)
 fig <- ggplotly(fig)
 
 fig
+<<<<<<< HEAD
 
 #################################################################################################################
 #Multiple series overlay -- plotly
@@ -104,6 +135,8 @@ plot<-ggplotly(ggplot() +
              geom_hline(yintercept=0.18)+
                         theme_bw() + xlab("Date") + ylab("Water Level [m]") + labs(fill = 'Date'))
 
+=======
+>>>>>>> 16449a7ce0b585d20c70a14470845787e1770e28
 ####################################################################################################################
 #ggplot2
 ####################################################################################################################

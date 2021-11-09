@@ -11,7 +11,11 @@ wtr_yr <- function(dates, start_month=10) {
 }
 
 #run function and add as new column
+<<<<<<< HEAD
 df_wtryr<- data %>% mutate(watyr = wtr_yr(Date, 10)) 
 
 
 depth_wtryr<- depth_long %>% mutate(watyr = wtr_yr(Date, 10)) 
+=======
+df_wtryr<- data %>% mutate(watyr = wtr_yr(Date, 10))  
+>>>>>>> 16449a7ce0b585d20c70a14470845787e1770e28
